@@ -1,2 +1,5 @@
 **/t.md
 **/t.py
+.venv/
+VLOGS/
+doc/

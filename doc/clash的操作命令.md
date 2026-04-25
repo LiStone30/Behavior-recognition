@@ -149,6 +149,9 @@ source ~/.bashrc
 **测试代理是否生效**：
 ```bash
 curl -I https://www.google.com
+
+curl -x http://127.0.0.1:7897 -I https://www.google.com
+
 ```
 
 若返回 `200 OK` 或 `301 Moved Permanently`，则说明成功。
