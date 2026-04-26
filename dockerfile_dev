@@ -1,0 +1,40 @@
+# 开发镜像 - 基于 Python 3.12 轻量版 Debian
+FROM docker.1ms.run/library/python:3.12-slim-bookworm
+
+# ==================== 环境变量配置 ====================
+# 最终虚拟环境的安装路径
+ENV VENV_PATH="/opt/venv"
+# 国内 PyPI 镜像加速（清华源）
+ENV PIP_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+ENV UV_INDEX_URL="https://pypi.tuna.tsinghua.edu.cn/simple"
+
+# ==================== 系统层配置 ====================
+# 替换 Debian 软件源为清华镜像，并清理缓存
+RUN sed -i "s@deb.debian.org@mirrors.tuna.tsinghua.edu.cn@g" /etc/apt/sources.list.d/debian.sources \
+    && apt-get clean
+
+# ==================== Python 工具安装 ====================
+# 全局安装 uv（极速 Python 包管理器），--no-cache-dir 减小镜像体积
+RUN pip install --no-cache-dir uv
+
+# ==================== 应用层配置 ====================
+WORKDIR /app
+
+# 复制依赖定义文件（提前复制以利用 Docker 缓存）
+COPY pyproject.toml uv.lock ./
+
+# ==================== 虚拟环境创建与迁移 ====================
+# 1. uv sync 会在 /app/.venv 中自动创建虚拟环境并安装所有依赖
+# 2. 随后将整个 .venv 移动到 /opt/venv，实现最终路径固定
+RUN uv sync \
+    && mv /app/.venv $VENV_PATH
+
+# 将移动后的虚拟环境的 bin 目录加入 PATH
+ENV PATH="$VENV_PATH/bin:$PATH"
+
+# ==================== 验证构建结果 ====================
+RUN which python && echo "✅ 虚拟环境已移动到 /opt/venv" && uv --version
+
+# ==================== 开发模式运行 ====================
+# 保持容器运行，便于进入容器进行开发调试
+CMD ["tail", "-f", "/dev/null"]
